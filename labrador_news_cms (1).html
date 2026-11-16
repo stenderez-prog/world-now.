@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labrador News - Professionel Nyhedsplatform & CMS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Newsreader for Scandinavian Press Aesthetic -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;1,6..72,400&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Newsreader', 'serif'],
+                    },
+                    colors: {
+                        labrador: {
+                            red: '#e31b23',
+                            darkred: '#b8121a',
+                            dark: '#0f172a',
+                            surface: '#f8fafc',
+                            card: '#ffffff',
+                            border: '#e2e8f0'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .article-title { font-family: 'Newsreader', serif; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @keyframes pulse-fast {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .animate-pulse-fast { animation: pulse-fast 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col">
+
+    <!-- TOP NAVIGATION & MODE SWITCHER -->
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Brand -->
+                <div class="flex items-center space-x-3">
+                    <div class="bg-labrador-red text-white p-2 rounded-lg font-black text-xl tracking-wider flex items-center justify-center shadow-inner">
+                        <i class="fa-solid fa-paw mr-1 text-sm"></i>L
+                    </div>
+                    <div>
+                        <span class="text-xl font-extrabold tracking-tight">Labrador<span class="text-labrador-red">News</span></span>
+                        <span class="hidden sm:inline-block ml-2 text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">CMS v4.8</span>
+                    </div>
+                </div>
+
+                <!-- Mode Switcher & Quick Actions -->
+                <div class="flex items-center space-x-2 sm:space-x-4">
+                    <div class="bg-slate-800 p-1 rounded-xl flex items-center border border-slate-700">
+                        <button id="btn-public" onclick="switchMode('public')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1.5 bg-labrador-red text-white shadow">
+                            <i class="fa-solid fa-globe"></i>
+                            <span>Forside</span>
+                        </button>
+                        <button id="btn-cms" onclick="switchMode('cms')" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1.5 text-slate-300 hover:text-white">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>Redaktionssystem</span>
+                        </button>
+                    </div>
+
+                    <div id="live-indicator" class="hidden md:flex items-center space-x-2 text-xs bg-emerald-950 text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-800">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span class="font-medium">Live Server Forbundet</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- ==================== PUBLIC VIEW (FORSIDE) ==================== -->
+    <div id="view-public" class="flex-1 flex flex-col">
+        
+        <!-- BREAKING NEWS TICKER -->
+        <div id="breaking-ticker-container" class="bg-labrador-red text-white py-2.5 px-4 shadow-inner relative overflow-hidden flex items-center">
+            <div class="max-w-7xl mx-auto w-full flex items-center">
+                <div class="flex items-center space-x-2 bg-black/20 px-3 py-1 rounded text-xs font-bold uppercase tracking-wider shrink-0 mr-4">
+                    <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                    <span>Breaking News</span>
+                </div>
+                <div class="overflow-hidden whitespace-nowrap w-full">
+                    <div id="ticker-text" class="inline-block text-sm font-medium animate-marquee">
+                        Hovedstadens metro udvides med tre nye linjer • Danmarks landshold klar til VM-finale • Minister indkalder til pressemøde om grøn trepart kl. 14:00
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CATEGORY SUB-NAVBAR -->
+        <nav class="bg-white border-b border-slate-200 sticky top-16 z-40 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div id="public-categories" class="flex space-x-8 overflow-x-auto py-3 no-scrollbar text-sm font-medium text-slate-600">
+                    <button onclick="filterPublicCategory('Alle')" class="category-btn text-labrador-red font-bold border-b-2 border-labrador-red pb-1 whitespace-nowrap">Seneste Nyheder</button>
+                    <button onclick="filterPublicCategory('Politik')" class="category-btn hover:text-labrador-red pb-1 whitespace-nowrap transition">Politik</button>
+                    <button onclick="filterPublicCategory('Udland')" class="category-btn hover:text-labrador-red pb-1 whitespace-nowrap transition">Udland</button>
+                    <button onclick="filterPublicCategory('Økonomi')" class="category-btn hover:text-labrador-red pb-1 whitespace-nowrap transition">Økonomi</button>
+                    <button onclick="filterPublicCategory('Kultur')" class="category-btn hover:text-labrador-red pb-1 whitespace-nowrap transition">Kultur</button>
+                    <button onclick="filterPublicCategory('Teknologi')" class="category-btn hover:text-labrador-red pb-1 whitespace-nowrap transition">Teknologi</button>
+                    <button onclick="filterPublicCategory('Video')" class="category-btn hover:text-labrador-red pb-1 whitespace-nowrap transition flex items-center space-x-1">
+                        <i class="fa-solid fa-video text-xs text-labrador-red"></i><span>Video</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN NEWS CONTENT -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
+            
+            <!-- HERO SECTION & FEATURED VIDEO PLAYER -->
+            <section id="hero-container" class="mb-12">
+                <!-- Injected dynamically via JS based on pinned hero article -->
+            </section>
+
+            <!-- NEWS GRID CONTAINER -->
+            <div class="mb-6 flex items-center justify-between border-b border-slate-200 pb-3">
+                <h3 class="text-xl font-extrabold tracking-tight text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-newspaper text-labrador-red"></i>
+                    <span id="section-title">Seneste Historier & Rapporter</span>
+                </h3>
+                <span id="article-count-badge" class="text-xs font-medium text-slate-500 bg-slate-200 px-2.5 py-1 rounded-full">Viser alle</span>
+            </div>
+
+            <div id="public-news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Dynamically populated article cards -->
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 mt-auto py-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="bg-labrador-red text-white p-2 rounded-lg font-black text-lg">
+                            <i class="fa-solid fa-paw text-xs"></i>
+                        </div>
+                        <span class="text-white text-xl font-bold">Labrador News</span>
+                    </div>
+                    <p class="text-sm text-slate-400">Skandinaviens førende digitale nyhedsplatform og redaktionelle CMS-infrastruktur. Hurtig, præcis og uafhængig.</p>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-3 text-sm uppercase tracking-wider">Redaktionen</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" onclick="switchMode('cms'); return false;" class="hover:text-white transition">CMS Indgang</a></li>
+                        <li><a href="#" class="hover:text-white transition">Ansvarshavende chefredaktør</a></li>
+                        <li><a href="#" class="hover:text-white transition">Presseetik & Etiske Regler</a></li>
+                        <li><a href="#" class="hover:text-white transition">Tip os (Sikker Drop)</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-3 text-sm uppercase tracking-wider">Kategorier</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" onclick="filterPublicCategory('Politik')" class="hover:text-white transition">Politik & Samfund</a></li>
+                        <li><a href="#" onclick="filterPublicCategory('Udland')" class="hover:text-white transition">Udland & Konflikter</a></li>
+                        <li><a href="#" onclick="filterPublicCategory('Økonomi')" class="hover:text-white transition">Økonomi & Erhverv</a></li>
+                        <li><a href="#" onclick="filterPublicCategory('Video')" class="hover:text-white transition">Video- og TV-arkiv</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-semibold mb-3 text-sm uppercase tracking-wider">System Status</h4>
+                    <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 text-xs space-y-2">
+                        <div class="flex justify-between"><span>Labrador Core:</span> <span class="text-emerald-400">Optimal (99.98%)</span></div>
+                        <div class="flex justify-between"><span>CDN Cache:</span> <span class="text-emerald-400">Synkroniseret</span></div>
+                        <div class="flex justify-between"><span>Redaktører online:</span> <span class="text-amber-400">4 aktive</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 pt-8 border-t border-slate-800 text-xs text-slate-500 text-center">
+                &copy; 2026 Labrador News A/S. Udviklet med Labrador CMS Engine. Alle rettigheder forbeholdes.
+            </div>
+        </footer>
+    </div>
+
+
+    <!-- ==================== CMS DASHBOARD VIEW (REDAKTIONSSYSTEM) ==================== -->
+    <div id="view-cms" class="flex-1 flex flex-col hidden bg-slate-100">
+        
+        <!-- CMS SUB-HEADER -->
+        <div class="bg-white border-b border-slate-200 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight flex items-center space-x-2">
+                        <i class="fa-solid fa-sliders text-labrador-red"></i>
+                        <span>Labrador CMS Redaktionspanel</span>
+                    </h1>
+                    <p class="text-xs text-slate-500">Styr indhold, publicering, hero-historier og videoer i realtid.</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="openArticleModal()" class="bg-labrador-red hover:bg-labrador-darkred text-white px-4 py-2 rounded-lg text-sm font-semibold shadow transition flex items-center space-x-2">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Opret Ny Artikel / Video</span>
+                    </button>
+                    <button onclick="resetDemoData()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-1" title="Genindlæs standard demo-data">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span class="hidden sm:inline">Nulstil Data</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CMS MAIN CONTENT WRAPPER -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1 space-y-8">
+            
+            <!-- DASHBOARD METRICS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Artikler I alt</p>
+                        <h3 id="stat-total" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
+                    </div>
+                    <div class="bg-blue-50 text-blue-600 p-3 rounded-xl text-lg">
+                        <i class="fa-solid fa-newspaper"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Udgivet</p>
+                        <h3 id="stat-published" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+                    </div>
+                    <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl text-lg">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Kladder</p>
+                        <h3 id="stat-drafts" class="text-2xl font-bold text-amber-600 mt-1">0</h3>
+                    </div>
+                    <div class="bg-amber-50 text-amber-600 p-3 rounded-xl text-lg">
+                        <i class="fa-solid fa-file-pen"></i>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Videoindslag</p>
+                        <h3 id="stat-videos" class="text-2xl font-bold text-rose-600 mt-1">0</h3>
+                    </div>
+                    <div class="bg-rose-50 text-rose-600 p-3 rounded-xl text-lg">
+                        <i class="fa-solid fa-video"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ARTICLE MANAGEMENT TABLE SECTION -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center space-x-3 w-full sm:w-auto">
+                        <div class="relative w-full sm:w-80">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-search"></i>
+                            </span>
+                            <input type="text" id="cms-search-input" oninput="renderCmsTable()" placeholder="Søg i overskrifter eller forfattere..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-labrador-red focus:border-transparent">
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+                        <select id="cms-filter-status" onchange="renderCmsTable()" class="border border-slate-300 rounded-lg text-sm px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-labrador-red">
+                            <option value="all">Alle statussen</option>
+                            <option value="published">Udgivet</option>
+                            <option value="draft">Kladde</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 uppercase text-xs font-semibold border-b border-slate-200">
+                                <th class="py-3 px-4">Titel & Kategori</th>
+                                <th class="py-3 px-4">Forfatter</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4">Hero Status</th>
+                                <th class="py-3 px-4">Dato</th>
+                                <th class="py-3 px-4 text-right">Handlinger</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cms-table-body" class="divide-y divide-slate-200 text-sm">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+    <!-- ==================== ARTICLE READER MODAL (FULL VIEW) ==================== -->
+    <div id="reader-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden my-8 relative flex flex-col max-h-[90vh]">
+            <!-- Modal Header -->
+            <div class="p-4 bg-slate-900 text-white flex items-center justify-between sticky top-0 z-10">
+                <span id="reader-modal-category" class="bg-labrador-red text-white text-xs font-bold px-2.5 py-1 rounded uppercase tracking-wider">Kategori</span>
+                <button onclick="closeReaderModal()" class="text-slate-400 hover:text-white p-2 text-lg rounded-full hover:bg-slate-800 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Body (Scrollable) -->
+            <div id="reader-modal-content" class="p-6 sm:p-10 overflow-y-auto space-y-6">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== CMS ARTICLE EDIT/CREATE MODAL ==================== -->
+    <div id="article-form-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden my-8">
+            <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+                <h3 id="form-modal-title" class="text-lg font-bold flex items-center space-x-2">
+                    <i class="fa-solid fa-pen-nib text-labrador-red"></i>
+                    <span>Opret Ny Artikel</span>
+                </h3>
+                <button onclick="closeArticleModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="article-form" onsubmit="handleArticleSubmit(event)" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <input type="hidden" id="edit-article-id">
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Artikel Overskrift *</label>
+                    <input type="text" id="input-title" required placeholder="F.eks. Historisk gennembrud for vedvarende energi..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-labrador-red">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Kategori *</label>
+                        <select id="input-category" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-labrador-red">
+                            <option value="Politik">Politik</option>
+                            <option value="Udland">Udland</option>
+                            <option value="Økonomi">Økonomi</option>
+                            <option value="Kultur">Kultur</option>
+                            <option value="Teknologi">Teknologi</option>
+                            <option value="Video">Video</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Forfatter / Redaktør *</label>
+                        <input type="text" id="input-author" required placeholder="F.eks. Jens Møller, Journalist" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-labrador-red">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Manchet / Underoverskrift (Lead) *</label>
+                    <textarea id="input-lead" rows="2" required placeholder="Kort resumé der fanger læserens opmærksomhed på forsiden..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-labrador-red"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Fuldt Artikelindtekst / Brødtekst *</label>
+                    <textarea id="input-body" rows="6" required placeholder="Skriv eller indsæt hele artiklen her. Afsnit adskilles med linjeskift..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-labrador-red"></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Billede URL (Forside & Artikel)</label>
+                        <input type="url" id="input-image" placeholder="https://images.unsplash.com/..." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-labrador-red">
+                        <p class="text-[11px] text-slate-400 mt-1">Efterlad tom for at bruge automatisk Labrador stock-billede.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Video URL / Stream (Valgfrit)</label>
+                        <input type="url" id="input-video" placeholder="https://www.youtube.com/embed/... eller mp4" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-labrador-red">
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-6 pt-2 border-t border-slate-200">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="input-published" class="rounded text-labrador-red focus:ring-labrador-red w-4 h-4">
+                        <span class="text-sm font-medium text-slate-700">Udgiv øjeblikkeligt (Publiceret)</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="input-hero" class="rounded text-labrador-red focus:ring-labrador-red w-4 h-4">
+                        <span class="text-sm font-medium text-slate-700 font-bold text-labrador-red"><i class="fa-solid fa-star mr-1"></i> Fastgør som Hero Top-historie</span>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-200">
+                    <button type="button" onclick="closeArticleModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition">Annuller</button>
+                    <button type="submit" class="px-5 py-2 bg-labrador-red hover:bg-labrador-darkred text-white rounded-lg text-sm font-semibold shadow transition">Gem Ændringer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+    <script>
+        // Initial Seed Data for Labrador News CMS
+        const defaultArticles = [
+            {
+                id: "art-1",
+                title: "Massivt energigennembrud: Nordisk supergrid forbinder vindmølleparker over Nordsøen",
+                category: "Teknologi",
+                author: "Mads Hvid, Seniorredaktør",
+                lead: "Et banebrydende samarbejde mellem Danmark, Norge og Storbritannien åbner for en ny æra med grøn elforsyning og rekordlave spidsbelastningspriser.",
+                body: "Klokken 09:00 i dag slog energiministrene fra de tre nordsølande flishuggene til for et historisk transmissionsnet. Projektet, kaldet Viking Energy Link, har været undervejs i 8 år og koster 42 milliarder kroner.\n\nIfølge eksperter vil dette sikre fuldstændig forsyningssikkerhed selv i vindstille perioder. 'Det er det mest ambitiøse skridt mod 100% vedvarende energi i moderne europæisk historie,' udtaler chefforsker Clara Lindqvist.\n\nSamtidig viser de første målinger, at forbrugerne kan se frem til faldende elpriser allerede fra næste kvartal.",
+                image: "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=1200&q=80",
+                videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", // Simulated video stream
+                published: true,
+                isHero: true,
+                date: "2026-11-16 11:30"
+            },
+            {
+                id: "art-2",
+                title: "Kritisk klimatopmøde skudt i gang: Forhandlere presset på bindende kulstop",
+                category: "Udland",
+                author: "Sofie Berner, Udenrigskorrespondent",
+                lead: "FN's generalsekretær advarer om 'selvets ødelæggelse', hvis ikke medlemslandene øger ambitionerne markant inden midnat fredag.",
+                body: "Stemningen i Geneves konferencecenter er spændt til det yderste. Delegater fra 194 nationer sidder i natlige forhandlinger om det endelige slutmål for udfasning af fossil energi.\n\nSærligt udviklingslandene kræver massiv finansiel kompensation for at fremskynde den grønne omstilling, hvilket har skabt diplomatisk tovtrækkeri med de store industrinationer.",
+                image: "https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?auto=format&fit=crop&w=800&q=80",
+                videoUrl: "",
+                published: true,
+                isHero: false,
+                date: "2026-11-16 10:15"
+            },
+            {
+                id: "art-3",
+                title: "Regeringen lancerer bred reformpakke: Skattelettelser til lav- og mellemindkomster",
+                category: "Politik",
+                author: "Henrik Thomsen, Borgen-redaktør",
+                lead: "Finansministeriet fremlægger omfattende skattereform, der skal gøre det mere attraktivt at arbejde og styrke velfærden i yderområderne.",
+                body: "På et pressemøde i Spejlsalen præsenterede regeringen i formiddags sin længe ventede reform af personskatterne. Pakken indeholder en sænkning af bundskatten med 1,5 procentpoint samt øget beskæftigelsesfradrag.\n\nOppositionen tager imod udspillet med skepsis og kalder det 'valgflæsk uden dækning', mens arbejdsmarkedets parter roser fokus på at fastholde seniormedarbejdere.",
+                image: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=800&q=80",
+                videoUrl: "",
+                published: true,
+                isHero: false,
+                date: "2026-11-16 09:00"
+            },
+            {
+                id: "art-4",
+                title: "Eksklusiv video: Indenfor i Danmarks første kvantecomputer-laboratorium",
+                category: "Video",
+                author: "Tech-Redaktionen",
+                lead: "Se de unikke optagelser af de absolutte nulpunkt-kryostater, der danner fundamentet for fremtidens ubrydelige datakryptering.",
+                body: "I en sikret kælder under Niels Bohr Instituttet arbejder Danmarks skarpeste fysikere på at tæmme kvantemekanikkens luner. Vi har fået eksklusiv adgang til laboratoriet, hvor temperaturerne når tættere på det absolute nulpunkt end det ydre verdensrum.\n\nSe hele vores videoreportage i toppen af artiklen og hør forskerne forklare, hvordan kvantecomputere vil ændre medicinsk forskning for altid.",
+                image: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=800&q=80",
+                videoUrl: "https://www.youtube.com/embed/ScMzIvxBSi4",
+                published: true,
+                isHero: false,
+                date: "2026-11-16 08:30"
+            },
+            {
+                id: "art-5",
+                title: "Boligmarkedet i uventet modvind: Renteændringer skaber uro blandt førstegangskøbere",
+                category: "Økonomi",
+                author: "Camilla Frost, Erhvervsjournalist",
+                lead: "Efter to år med stabil opgang oplever de største byer nu faldende salgstider og forsigtige budrunder.",
+                body: "Nationalbankens seneste rentemeldinger har sendt rystelser gennem det danske boligmarked. Førstegangskøbere i København og Aarhus møder nu strengere kreditvurderinger, hvilket dæmper aktiviteten mærkbart.\n\nEjendomsmæglerkæder melder dog om stor regional forskel, hvor provinsbyerne fortsat oplever stabil efterspørgsel.",
+                image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80",
+                videoUrl: "",
+                published: true,
+                isHero: false,
+                date: "2026-11-15 19:45"
+            },
+            {
+                id: "art-6",
+                title: "Kulturministeren hylder ny dansk filmkunst ved prestigiøs prisuddeling",
+                category: "Kultur",
+                author: "Frederik Lind, Kulturredaktør",
+                lead: "Aftenens store vinder blev det eksperlerende drama 'Sten og Hav', der modtog fem statuetter.",
+                body: "Cirkusbygningen lagde søndag sal til årets store svendeprøve for dansk film. Internationale anmeldere var mødt op for at hylde den nye bølge af nordisk auteur-instruktion.",
+                image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=800&q=80",
+                videoUrl: "",
+                published: false, // Draft example
+                isHero: false,
+                date: "2026-11-15 16:20"
+            }
+        ];
+
+        // State variables
+        let articles = [];
+        let currentPublicCategory = 'Alle';
+        let currentMode = 'public'; // 'public' or 'cms'
+
+        // Initialize Application
+        function initApp() {
+            const saved = localStorage.getItem('labrador_news_articles_v2');
+            if (saved) {
+                try {
+                    articles = JSON.parse(saved);
+                } catch (e) {
+                    articles = defaultArticles;
+                }
+            } else {
+                articles = defaultArticles;
+                saveArticles();
+            }
+
+            renderPublicView();
+            renderCmsView();
+        }
+
+        function saveArticles() {
+            localStorage.setItem('labrador_news_articles_v2', JSON.stringify(articles));
+        }
+
+        function resetDemoData() {
+            articles = JSON.parse(JSON.stringify(defaultArticles));
+            saveArticles();
+            renderPublicView();
+            renderCmsView();
+            showToast("Demo-data er genindlæst i Labrador CMS.", "success");
+        }
+
+        // Mode Switching Logic
+        function switchMode(mode) {
+            currentMode = mode;
+            const btnPublic = document.getElementById('btn-public');
+            const btnCms = document.getElementById('btn-cms');
+            const viewPublic = document.getElementById('view-public');
+            const viewCms = document.getElementById('view-cms');
+
+            if (mode === 'public') {
+                btnPublic.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1.5 bg-labrador-red text-white shadow";
+                btnCms.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1.5 text-slate-300 hover:text-white";
+                viewPublic.classList.remove('hidden');
+                viewCms.classList.add('hidden');
+                renderPublicView();
+            } else {
+                btnCms.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1.5 bg-labrador-red text-white shadow";
+                btnPublic.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1.5 text-slate-300 hover:text-white";
+                viewCms.classList.remove('hidden');
+                viewPublic.classList.add('hidden');
+                renderCmsView();
+            }
+        }
+
+        // ==================== PUBLIC VIEW RENDERING ====================
+        function filterPublicCategory(category) {
+            currentPublicCategory = category;
+            
+            // Update active styling on category buttons
+            const buttons = document.querySelectorAll('#public-categories button');
+            buttons.forEach(btn => {
+                if (btn.textContent.includes(category)) {
+                    btn.className = "category-btn text-labrador-red font-bold border-b-2 border-labrador-red pb-1 whitespace-nowrap";
+                } else {
+                    btn.className = "category-btn text-slate-600 hover:text-labrador-red pb-1 whitespace-nowrap transition";
+                }
+            });
+
+            document.getElementById('section-title').textContent = category === 'Alle' ? 'Seneste Historier & Rapporter' : category + ' - Udvalgte Historier';
+            renderPublicView();
+        }
+
+        function renderPublicView() {
+            const heroContainer = document.getElementById('hero-container');
+            const gridContainer = document.getElementById('public-news-grid');
+            const countBadge = document.getElementById('article-count-badge');
+
+            // Filter published articles
+            let published = articles.filter(a => a.published);
+
+            if (currentPublicCategory !== 'Alle') {
+                if (currentPublicCategory === 'Video') {
+                    published = published.filter(a => a.videoUrl && a.videoUrl.trim() !== '');
+                } else {
+                    published = published.filter(a => a.category === currentPublicCategory);
+                }
+            }
+
+            countBadge.textContent = `${published.length} artikler`;
+
+            // Find hero article (either designated isHero among published, or the first published one)
+            let heroArticle = published.find(a => a.isHero) || published[0];
+            let gridArticles = heroArticle ? published.filter(a => a.id !== heroArticle.id) : published;
+
+            // Render Hero Section
+            if (heroArticle && currentPublicCategory === 'Alle') {
+                heroContainer.innerHTML = `
+                    <div class="bg-slate-900 rounded-2xl overflow-hidden shadow-xl grid grid-cols-1 lg:grid-cols-12 border border-slate-800 text-white group cursor-pointer" onclick="openReaderModal('${heroArticle.id}')">
+                        <div class="lg:col-span-7 relative min-h-[320px] lg:min-h-[420px] overflow-hidden bg-slate-950">
+                            <img src="${heroArticle.image || 'https://placehold.co/800x500/0f172a/ffffff?text=Labrador+News'}" alt="${heroArticle.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-700 opacity-90" onerror="this.src='https://placehold.co/800x500/0f172a/ffffff?text=Labrador+News'">
+                            <div class="absolute top-4 left-4 flex items-center space-x-2">
+                                <span class="bg-labrador-red text-white text-xs font-black px-3 py-1 rounded uppercase tracking-wider shadow">TOPHISTORIE</span>
+                                ${heroArticle.videoUrl ? '<span class="bg-black/70 backdrop-blur text-white text-xs font-bold px-2.5 py-1 rounded flex items-center space-x-1"><i class="fa-solid fa-video text-rose-500"></i><span>Video</span></span>' : ''}
+                            </div>
+                        </div>
+                        <div class="lg:col-span-5 p-6 lg:p-10 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center space-x-2 text-xs text-labrador-red font-bold uppercase tracking-widest mb-3">
+                                    <span>${heroArticle.category}</span>
+                                    <span>•</span>
+                                    <span class="text-slate-400">${heroArticle.date}</span>
+                                </div>
+                                <h2 class="article-title text-2xl lg:text-3xl font-bold leading-snug mb-4 group-hover:text-red-400 transition">
+                                    ${heroArticle.title}
+                                </h2>
+                                <p class="text-slate-300 text-sm lg:text-base leading-relaxed mb-6 line-clamp-3">
+                                    ${heroArticle.lead}
+                                </p>
+                            </div>
+                            <div class="flex items-center justify-between pt-4 border-t border-slate-800 text-xs text-slate-400">
+                                <span class="font-medium text-slate-300"><i class="fa-solid fa-pen-nib mr-1 text-labrador-red"></i> ${heroArticle.author}</span>
+                                <span class="text-labrador-red font-bold flex items-center space-x-1 group-hover:translate-x-1 transition"><span>Læs hele artiklen</span> <i class="fa-solid fa-arrow-right"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                heroContainer.classList.remove('hidden');
+            } else {
+                heroContainer.innerHTML = '';
+                if(currentPublicCategory !== 'Alle') {
+                    gridArticles = published; // If category filtered, show all in grid
+                }
+            }
+
+            // Render Grid Articles
+            if (gridArticles.length === 0) {
+                gridContainer.innerHTML = `
+                    <div class="col-span-full py-16 text-center bg-white rounded-2xl border border-slate-200">
+                        <i class="fa-solid fa-folder-open text-4xl text-slate-300 mb-3"></i>
+                        <h4 class="text-lg font-bold text-slate-700">Ingen artikler fundet i denne kategori</h4>
+                        <p class="text-sm text-slate-500 mt-1">Prøv at vælge en anden kategori eller opret en ny artikel i redaktionssystemet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            gridContainer.innerHTML = gridArticles.map(art => `
+                <article onclick="openReaderModal('${art.id}')" class="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group cursor-pointer">
+                    <div class="relative h-48 overflow-hidden bg-slate-100">
+                        <img src="${art.image || 'https://placehold.co/600x400/e2e8f0/475569?text=Labrador+News'}" alt="${art.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x400/e2e8f0/475569?text=Labrador+News'">
+                        <div class="absolute top-3 left-3 flex items-center space-x-2">
+                            <span class="bg-slate-900/80 backdrop-blur text-white text-[11px] font-bold px-2.5 py-0.5 rounded uppercase tracking-wider">${art.category}</span>
+                            ${art.videoUrl ? '<span class="bg-labrador-red text-white text-[11px] font-bold px-2 py-0.5 rounded flex items-center space-x-1"><i class="fa-solid fa-video"></i></span>' : ''}
+                        </div>
+                    </div>
+                    <div class="p-6 flex-1 flex flex-col justify-between">
+                        <div>
+                            <p class="text-xs text-slate-400 mb-2">${art.date}</p>
+                            <h3 class="article-title text-xl font-bold text-slate-900 group-hover:text-labrador-red transition leading-snug mb-3">
+                                ${art.title}
+                            </h3>
+                            <p class="text-slate-600 text-sm leading-relaxed line-clamp-3 mb-4">
+                                ${art.lead}
+                            </p>
+                        </div>
+                        <div class="flex items-center justify-between pt-4 border-t border-slate-100 text-xs text-slate-500">
+                            <span class="font-medium truncate max-w-[180px]"><i class="fa-solid fa-pen-nib mr-1 text-labrador-red"></i> ${art.author}</span>
+                            <span class="text-labrador-red font-semibold flex items-center space-x-1"><span>Læs mere</span> <i class="fa-solid fa-arrow-right text-[10px]"></i></span>
+                        </div>
+                    </div>
+                </article>
+            `).join('');
+        }
+
+        // ==================== ARTICLE READER MODAL ====================
+        function openReaderModal(id) {
+            const art = articles.find(a => a.id === id);
+            if (!art) return;
+
+            document.getElementById('reader-modal-category').textContent = art.category;
+            const contentDiv = document.getElementById('reader-modal-content');
+
+            let videoEmbedHTML = '';
+            if (art.videoUrl && art.videoUrl.trim() !== '') {
+                // If it's a youtube embed or standard link
+                let embedSrc = art.videoUrl;
+                if(embedSrc.includes('watch?v=')) {
+                    embedSrc = embedSrc.replace('watch?v=', 'embed/');
+                }
+                videoEmbedHTML = `
+                    <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-lg my-6">
+                        <iframe src="${embedSrc}" class="w-full h-full border-0" allowfullscreen></iframe>
+                    </div>
+                `;
+            }
+
+            // Format body with paragraph breaks
+            const formattedBody = art.body.split('\n\n').map(p => `<p class="leading-relaxed mb-4">${p}</p>`).join('');
+
+            contentDiv.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-3 text-xs text-slate-500">
+                        <span class="bg-slate-100 px-2.5 py-1 rounded font-semibold text-slate-700">${art.date}</span>
+                        <span>•</span>
+                        <span><i class="fa-solid fa-pen-nib text-labrador-red mr-1"></i> ${art.author}</span>
+                    </div>
+                    <h1 class="article-title text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight">
+                        ${art.title}
+                    </h1>
+                    <p class="text-lg font-serif italic text-slate-600 border-l-4 border-labrador-red pl-4 py-1">
+                        ${art.lead}
+                    </p>
+                </div>
+
+                ${videoEmbedHTML}
+
+                <div class="rounded-xl overflow-hidden shadow-md my-6 bg-slate-100 max-h-[450px]">
+                    <img src="${art.image || 'https://placehold.co/800x500/e2e8f0/475569?text=Labrador+News'}" alt="${art.title}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/800x500/e2e8f0/475569?text=Labrador+News'">
+                </div>
+
+                <div class="prose prose-slate max-w-none text-slate-800 text-base sm:text-lg">
+                    ${formattedBody}
+                </div>
+
+                <div class="pt-6 border-t border-slate-200 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <button onclick="shareArticle('${art.title}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-share-nodes"></i>
+                            <span>Del Artikel</span>
+                        </button>
+                    </div>
+                    <button onclick="closeReaderModal()" class="bg-slate-900 text-white px-5 py-2 rounded-lg text-xs font-semibold hover:bg-slate-800 transition">
+                        Luk Vindue
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('reader-modal').classList.remove('hidden');
+        }
+
+        function closeReaderModal() {
+            document.getElementById('reader-modal').classList.add('hidden');
+        }
+
+        function shareArticle(title) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(window.location.href);
+                showToast(`Link til "${title.substring(0, 30)}..." kopieret til udklipsholder!`, "success");
+            } else {
+                showToast("Artikel link klar til deling.", "success");
+            }
+        }
+
+
+        // ==================== CMS DASHBOARD RENDERING & CRUD ====================
+        function renderCmsView() {
+            const totalCount = articles.length;
+            const publishedCount = articles.filter(a => a.published).length;
+            const draftCount = totalCount - publishedCount;
+            const videoCount = articles.filter(a => a.videoUrl && a.videoUrl.trim() !== '').length;
+
+            document.getElementById('stat-total').textContent = totalCount;
+            document.getElementById('stat-published').textContent = publishedCount;
+            document.getElementById('stat-drafts').textContent = draftCount;
+            document.getElementById('stat-videos').textContent = videoCount;
+
+            renderCmsTable();
+        }
+
+        function renderCmsTable() {
+            const tbody = document.getElementById('cms-table-body');
+            const searchVal = document.getElementById('cms-search-input').value.toLowerCase();
+            const statusFilter = document.getElementById('cms-filter-status').value;
+
+            let filtered = articles.filter(art => {
+                const matchesSearch = art.title.toLowerCase().includes(searchVal) || art.author.toLowerCase().includes(searchVal) || art.category.toLowerCase().includes(searchVal);
+                if (statusFilter === 'published') return matchesSearch && art.published;
+                if (statusFilter === 'draft') return matchesSearch && !art.published;
+                return matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-slate-500">
+                            Ingen artikler matcher søgningen i redaktionssystemet.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(art => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="py-4 px-4">
+                        <div class="font-bold text-slate-900 max-w-md truncate">${art.title}</div>
+                        <div class="text-xs text-slate-500 mt-0.5 flex items-center space-x-2">
+                            <span class="bg-slate-200 px-2 py-0.5 rounded text-[10px] font-semibold">${art.category}</span>
+                            ${art.videoUrl ? '<span class="text-rose-600 font-medium"><i class="fa-solid fa-video mr-1"></i>Video</span>' : ''}
+                        </div>
+                    </td>
+                    <td class="py-4 px-4 text-slate-600 text-xs font-medium">
+                        ${art.author}
+                    </td>
+                    <td class="py-4 px-4">
+                        ${art.published 
+                            ? '<span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center space-x-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>Udgivet</span></span>'
+                            : '<span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center space-x-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span><span>Kladde</span></span>'
+                        }
+                    </td>
+                    <td class="py-4 px-4">
+                        ${art.isHero 
+                            ? '<span class="bg-rose-100 text-rose-800 px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center space-x-1"><i class="fa-solid fa-star text-[10px]"></i><span>Hero</span></span>'
+                            : '<span class="text-slate-400 text-xs">Standard</span>'
+                        }
+                    </td>
+                    <td class="py-4 px-4 text-slate-500 text-xs">
+                        ${art.date}
+                    </td>
+                    <td class="py-4 px-4 text-right space-x-2">
+                        <button onclick="togglePublish('${art.id}')" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs transition" title="${art.published ? 'Gør til kladde' : 'Udgiv artikel'}">
+                            <i class="fa-solid ${art.published ? 'fa-eye-slash' : 'fa-eye'}"></i>
+                        </button>
+                        <button onclick="toggleHero('${art.id}')" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs transition" title="Fastgør som Hero">
+                            <i class="fa-solid fa-star ${art.isHero ? 'text-amber-500' : ''}"></i>
+                        </button>
+                        <button onclick="openEditArticleModal('${art.id}')" class="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs transition" title="Rediger">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button onclick="deleteArticle('${art.id}')" class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs transition" title="Slet">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Article Modal Management
+        function openArticleModal() {
+            document.getElementById('edit-article-id').value = '';
+            document.getElementById('form-modal-title').innerHTML = '<i class="fa-solid fa-pen-nib text-labrador-red"></i><span>Opret Ny Artikel</span>';
+            document.getElementById('article-form').reset();
+            document.getElementById('input-published').checked = true;
+            document.getElementById('article-form-modal').classList.remove('hidden');
+        }
+
+        function openEditArticleModal(id) {
+            const art = articles.find(a => a.id === id);
+            if (!art) return;
+
+            document.getElementById('edit-article-id').value = art.id;
+            document.getElementById('form-modal-title').innerHTML = '<i class="fa-solid fa-pen-nib text-labrador-red"></i><span>Rediger Artikel: ' + art.title.substring(0, 20) + '...</span>';
+            document.getElementById('input-title').value = art.title;
+            document.getElementById('input-category').value = art.category;
+            document.getElementById('input-author').value = art.author;
+            document.getElementById('input-lead').value = art.lead;
+            document.getElementById('input-body').value = art.body;
+            document.getElementById('input-image').value = art.image || '';
+            document.getElementById('input-video').value = art.videoUrl || '';
+            document.getElementById('input-published').checked = art.published;
+            document.getElementById('input-hero').checked = art.isHero;
+
+            document.getElementById('article-form-modal').classList.remove('hidden');
+        }
+
+        function closeArticleModal() {
+            document.getElementById('article-form-modal').classList.add('hidden');
+        }
+
+        function handleArticleSubmit(e) {
+            e.preventDefault();
+            const editId = document.getElementById('edit-article-id').value;
+            const title = document.getElementById('input-title').value;
+            const category = document.getElementById('input-category').value;
+            const author = document.getElementById('input-author').value;
+            const lead = document.getElementById('input-lead').value;
+            const body = document.getElementById('input-body').value;
+            const image = document.getElementById('input-image').value.trim();
+            const videoUrl = document.getElementById('input-video').value.trim();
+            const published = document.getElementById('input-published').checked;
+            const isHero = document.getElementById('input-hero').checked;
+
+            if (isHero) {
+                // Unset other heroes if this one is hero
+                articles.forEach(a => a.isHero = false);
+            }
+
+            if (editId) {
+                // Update
+                const index = articles.findIndex(a => a.id === editId);
+                if (index !== -1) {
+                    articles[index] = {
+                        ...articles[index],
+                        title, category, author, lead, body, image, videoUrl, published, isHero
+                    };
+                }
+                showToast("Artikel opdateret i Labrador CMS.", "success");
+            } else {
+                // Create new
+                const newArt = {
+                    id: 'art-' + Date.now(),
+                    title,
+                    category,
+                    author,
+                    lead,
+                    body,
+                    image: image || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80',
+                    videoUrl,
+                    published,
+                    isHero,
+                    date: new Date().toISOString().replace('T', ' ').substring(0, 16)
+                };
+                articles.unshift(newArt);
+                showToast("Ny artikel oprettet og gemt!", "success");
+            }
+
+            saveArticles();
+            closeArticleModal();
+            renderCmsView();
+            renderPublicView();
+        }
+
+        function togglePublish(id) {
+            const art = articles.find(a => a.id === id);
+            if (art) {
+                art.published = !art.published;
+                saveArticles();
+                renderCmsView();
+                renderPublicView();
+                showToast(`Artikel status ændret til: ${art.published ? 'Udgivet' : 'Kladde'}`, "info");
+            }
+        }
+
+        function toggleHero(id) {
+            const art = articles.find(a => a.id === id);
+            if (art) {
+                const wasHero = art.isHero;
+                articles.forEach(a => a.isHero = false);
+                if (!wasHero) {
+                    art.isHero = true;
+                    showToast(`"${art.title.substring(0, 25)}..." er sat som Hero-tophistorie`, "success");
+                } else {
+                    showToast("Hero-status fjernet", "info");
+                }
+                saveArticles();
+                renderCmsView();
+                renderPublicView();
+            }
+        }
+
+        function deleteArticle(id) {
+            const art = articles.find(a => a.id === id);
+            if (confirm(`Er du sikker på, at du vil slette "${art ? art.title : 'denne artikel'}" permanent?`)) {
+                articles = articles.filter(a => a.id !== id);
+                saveArticles();
+                renderCmsView();
+                renderPublicView();
+                showToast("Artikel slettet fra systemet.", "info");
+            }
+        }
+
+        // ==================== TOAST NOTIFICATIONS ====================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-slate-900 text-white';
+            let icon = 'fa-circle-check text-emerald-400';
+            if (type === 'success') {
+                bgClass = 'bg-slate-900 text-white border border-emerald-500/30';
+                icon = 'fa-circle-check text-emerald-400';
+            } else if (type === 'info') {
+                bgClass = 'bg-slate-900 text-white border border-blue-500/30';
+                icon = 'fa-circle-info text-blue-400';
+            }
+
+            toast.className = `${bgClass} px-4 py-3 rounded-xl shadow-2xl text-xs font-medium flex items-center space-x-3 pointer-events-auto transform translate-y-2 opacity-0 transition-all duration-300`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icon} text-base"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // Run on load
+        window.onload = function() {
+            initApp();
+        };
+    </script>
+</body>
+</html>
